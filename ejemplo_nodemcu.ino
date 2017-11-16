@@ -6,7 +6,13 @@
 #include <Adafruit_SSD1306.h>
 #include <ESP8266WiFi.h>
 
+#include <DHT_U.h>
+#include <DHT.h>
+
 #define LED_BUILTIN 2
+
+#define DHTPIN 12
+#define DHTTYPE DHT22
 
 #define OLED_RESET LED_BUILTIN
 Adafruit_SSD1306 display(OLED_RESET);
@@ -46,6 +52,8 @@ const char* password = "Nhmq100ad";
 
 int estado_led = 0;
 
+DHT dht(DHTPIN, DHTTYPE);
+
 void setup()   {                
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -58,9 +66,49 @@ void setup()   {
   // Since the buffer is intialized with an Adafruit splashscreen
   // internally, this will display the splashscreen.
   display.display();
+  digitalWrite(LED_BUILTIN, LOW);
   delay(2000);
+  digitalWrite(LED_BUILTIN, HIGH);
+//  wifi_setup();
 
-  // Clear the buffer.
+  dht.begin();
+
+}
+
+
+void loop() {;
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  float hic = dht.computeHeatIndex(t, h, false);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(200);
+  digitalWrite(LED_BUILTIN, HIGH);
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  if (isnan(h) || isnan(t)) {
+    display.println("Error... ");
+    digitalWrite(LED_BUILTIN, LOW);
+  } else {
+    display.println("NODO-01");
+    display.print("T: ");
+    display.print(t);
+    display.println("");
+    display.print("H: ");
+    display.print(t);
+    display.println("%");
+    display.print("Ts: ");
+    display.print(hic);
+    display.println("");
+    digitalWrite(LED_BUILTIN, HIGH);
+  }
+  display.display();
+  delay(5000);
+}
+
+void  wifi_setup(){
+    // Clear the buffer.
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(WHITE);
@@ -89,11 +137,5 @@ void setup()   {
   display.print("IP: ");
   display.println(WiFi.localIP());
   display.display();
-
-}
-
-
-void loop() {
-  
 }
 
