@@ -16,39 +16,17 @@
 
 #define OLED_RESET LED_BUILTIN
 Adafruit_SSD1306 display(OLED_RESET);
-
-#define NUMFLAKES 10
-#define XPOS 0
-#define YPOS 1
-#define DELTAY 2
-
-
 #define LOGO16_GLCD_HEIGHT 16 
-#define LOGO16_GLCD_WIDTH  16 
-static const unsigned char PROGMEM logo16_glcd_bmp[] =
-{ B00000000, B11000000,
-  B00000001, B11000000,
-  B00000001, B11000000,
-  B00000011, B11100000,
-  B11110011, B11100000,
-  B11111110, B11111000,
-  B01111110, B11111111,
-  B00110011, B10011111,
-  B00011111, B11111100,
-  B00001101, B01110000,
-  B00011011, B10100000,
-  B00111111, B11100000,
-  B00111111, B11110000,
-  B01111100, B11110000,
-  B01110000, B01110000,
-  B00000000, B00110000 };
-
+#define LOGO16_GLCD_WIDTH  16
 #if (SSD1306_LCDHEIGHT != 64)
 #error("Height incorrect, please fix Adafruit_SSD1306.h!");
 #endif
 
-const char* ssid     = "LSGV";
-const char* password = "Nhmq100ad";
+const char* ssid     = "";
+const char* password = "";
+const char* host = "2.139.156.21";
+const int httpPort = 80;
+const String station = "A-01";
 
 int estado_led = 0;
 
@@ -69,7 +47,7 @@ void setup()   {
   digitalWrite(LED_BUILTIN, LOW);
   delay(2000);
   digitalWrite(LED_BUILTIN, HIGH);
-//  wifi_setup();
+  wifi_setup();
 
   dht.begin();
 
@@ -91,12 +69,13 @@ void loop() {;
     display.println("Error... ");
     digitalWrite(LED_BUILTIN, LOW);
   } else {
-    display.println("NODO-01");
+    display.print("Node: ");
+    display.println(station);
     display.print("T: ");
     display.print(t);
     display.println("");
     display.print("H: ");
-    display.print(t);
+    display.print(h);
     display.println("%");
     display.print("Ts: ");
     display.print(hic);
@@ -104,8 +83,44 @@ void loop() {;
     digitalWrite(LED_BUILTIN, HIGH);
   }
   display.display();
-  delay(5000);
+
+  send_data(t, h);
+  
+  delay(60000);
 }
+
+void send_data(float tem, float hum) {
+  WiFiClient client;
+  if (!client.connect(host, httpPort)){
+    Serial.println("connection failed");
+    return;
+  }
+  String url = "http://2.139.156.21/iot/intro_data.php";
+  String data = "station='" + station + "'&tem=" + String(tem) + "&hum=" + String(hum);
+  Serial.print("Requesting URL: ");
+  Serial.println(url);
+//  Serial.println(data);
+  
+  client.print(String("POST ") + url + " HTTP/1.0\r\n"+
+               "Host: " + host + "\r\n" +
+               "Accept: *" + "/" + "*\r\n" +
+               "Content-Lenght: " + data.length() + "\r\n" +
+               "Content-Type: application/x-www-form-urlencoded\r\n" +
+               "\r\n" + data);
+  delay(20);
+
+  Serial.println("Respond:");
+  while (client.available()){
+    String line = client.readStringUntil('\r');
+    Serial.print(line);
+  }
+
+  Serial.println();
+
+  Serial.println("closing connection...");
+  
+}
+
 
 void  wifi_setup(){
     // Clear the buffer.
